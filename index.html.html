@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transfer Pass Calculator</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#161c24; --panel-alt:#1b222c; --line:#2a323d;
+    --ink:#e8ebef; --sub:#9aa5b1; --accent:#5b8ac2; --accent-deep:#3d5a75;
+    --header:#1c2733; --good:#4caf7d; --warn:#d9a441; --high:#e0665c;
+    --input-bg:#0f1419; --input-border:#3a4553; --focus:#6fa8dc;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family: Georgia, 'Times New Roman', serif;
+    color:var(--ink); background:var(--bg);
+    margin:0; padding:0 14px;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:28px 0 60px;}
+  h1{font-size:1.5rem; margin:0 0 4px; color:#f4f6f8;}
+  .source{color:var(--sub); font-size:0.82rem; margin-bottom:20px;}
+  .note-box{
+    background:#20241a; border:1px solid #4a4726; border-radius:6px;
+    padding:10px 14px; font-size:0.85rem; color:#d9c98a; margin-bottom:20px;
+    line-height:1.5;
+  }
+  .calc-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:20px; margin-bottom:24px;
+  }
+  label{ display:block; font-size:0.85rem; color:var(--sub); margin-bottom:4px; }
+  input[type=number]{
+    width:100%; padding:10px 12px; font-family:inherit; font-size:1rem;
+    border:1px solid var(--input-border); border-radius:6px;
+    background:var(--input-bg); color:var(--ink); margin-bottom:16px;
+  }
+  input[type=number]:focus{ outline:2px solid var(--focus); border-color:var(--focus); }
+  button{
+    font-family:inherit; font-size:0.95rem; padding:10px 20px; border-radius:6px;
+    border:1px solid var(--accent); background:var(--accent); color:#0f1419; cursor:pointer;
+    font-weight:bold; width:100%;
+  }
+  button:hover{ opacity:0.88; }
+  .result{
+    margin-top:20px; padding:18px; border-radius:8px; text-align:center;
+    background:var(--panel-alt); border:1px solid var(--line); display:none;
+  }
+  .result.show{ display:block; }
+  .result .big{ font-size:2.4rem; font-weight:bold; color:var(--accent); }
+  .result .label{ font-size:0.85rem; color:var(--sub); margin-top:2px; }
+  .result .ratio{ font-size:0.8rem; color:var(--sub); margin-top:10px; }
+  .result.capped .big{ color:var(--high); }
+  h2{
+    font-size:1.05rem; margin:28px 0 8px; color:#dfe6ee;
+    border-bottom:2px solid var(--accent-deep); padding-bottom:4px;
+  }
+  p{ line-height:1.55; font-size:0.9rem; color:var(--ink); }
+  .table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:8px; background:var(--panel); }
+  table{ width:100%; border-collapse:collapse; font-size:0.82rem; }
+  th, td{ padding:6px 8px; border-bottom:1px solid var(--line); text-align:center; }
+  th{ background:var(--header); color:#eef2f6; font-weight:normal; font-size:0.75rem; }
+  tbody tr:nth-child(even){ background:var(--panel-alt); }
+  footer{ margin-top:32px; font-size:0.78rem; color:var(--sub); text-align:center; }
+  .mode-tab{
+    font-family:inherit; font-size:0.82rem; padding:8px 10px; border-radius:6px;
+    border:1px solid var(--accent-deep); background:transparent; color:var(--sub); cursor:pointer;
+  }
+  .mode-tab.active-tab{ background:var(--accent); color:#0f1419; border-color:var(--accent); font-weight:bold; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Kingshot Transfer Pass Calculator</h1>
+  <div class="source">Estimates Transfer Pass cost from a governor's Transfer Score and the target Kingdom's Rating.</div>
+
+  <div class="note-box">
+    This is an <strong>approximation</strong>, not the official formula — Centurygames hasn't
+    published it. It's a curve fit to 13 real in-game data points collected across the BFF
+    alliance and several outside players. Most estimates land within 1–2 passes of the real
+    value, but treat it as a ballpark, not a guarantee.
+  </div>
+
+  <div class="calc-panel">
+    <div class="mode-tabs" style="display:flex; gap:8px; margin-bottom:16px;">
+      <button id="tabScore" class="mode-tab active-tab" style="flex:1;">I have their Score</button>
+      <button id="tabStats" class="mode-tab" style="flex:1;">I only have their Stats</button>
+    </div>
+
+    <div id="scoreMode">
+      <label for="score">Transfer Score</label>
+      <input type="number" id="score" min="0" placeholder="e.g. 750000">
+
+      <label for="rating">Prospective Kingdom's Rating</label>
+      <input type="number" id="rating" min="1" value="969449">
+
+      <button id="calcBtn">Calculate</button>
+    </div>
+
+    <div id="statsMode" style="display:none;">
+      <label for="statTech">Tech Power</label>
+      <input type="number" id="statTech" min="0" placeholder="e.g. 20000000">
+      <label for="statGear">Governor Gear Power</label>
+      <input type="number" id="statGear" min="0" placeholder="e.g. 22000000">
+      <label for="statHero">Hero Power</label>
+      <input type="number" id="statHero" min="0" placeholder="e.g. 35000000">
+      <label for="statPet">Pet Power</label>
+      <input type="number" id="statPet" min="0" placeholder="e.g. 12000000">
+      <label for="statMaster">Master Power</label>
+      <input type="number" id="statMaster" min="0" placeholder="e.g. 15000000">
+      <label for="statBuilding">Building Power</label>
+      <input type="number" id="statBuilding" min="0" placeholder="e.g. 7800000">
+
+      <label for="ratingStats">Prospective Kingdom's Rating</label>
+      <input type="number" id="ratingStats" min="1" value="969449">
+
+      <button id="calcStatsBtn">Estimate Score &amp; Calculate</button>
+      <div style="font-size:0.78rem; color:var(--sub); margin-top:10px;" id="estimatedScoreNote"></div>
+    </div>
+
+    <div class="result" id="result">
+      <div class="big" id="resultPasses">—</div>
+      <div class="label">estimated Transfer Passes</div>
+      <div class="ratio" id="resultRatio"></div>
+    </div>
+  </div>
+
+  <footer>Formula: cost ≈ 2.17 × e^(3.16 × ratio), capped at 50. Ratio = Score ÷ Rating.</footer>
+</div>
+
+<script>
+const A = 2.17;
+const K = 3.16;
+
+// Regression coefficients for estimating Transfer Score from raw stats
+// (tech, govgear, hero, pet, master, building, intercept)
+const SCORE_COEF = {
+  tech: 0.00840896,
+  govgear: 0.02413643,
+  hero: 0.00541709,
+  pet: 0.02103956,
+  master: 0.00117639,
+  building: -0.02132348,
+  intercept: -196904.423
+};
+
+function estimateScoreFromStats(tech, govgear, hero, pet, master, building){
+  return SCORE_COEF.tech*tech + SCORE_COEF.govgear*govgear + SCORE_COEF.hero*hero +
+         SCORE_COEF.pet*pet + SCORE_COEF.master*master + SCORE_COEF.building*building +
+         SCORE_COEF.intercept;
+}
+
+function estimate(score, rating){
+  const ratio = score / rating;
+  const raw = A * Math.exp(K * ratio);
+  const capped = Math.min(raw, 50);
+  return { ratio, raw, passes: Math.max(0, Math.round(capped)) };
+}
+
+function showResult(score, rating, estimatedNote){
+  const result = document.getElementById('result');
+  const passesEl = document.getElementById('resultPasses');
+  const ratioEl = document.getElementById('resultRatio');
+
+  if(isNaN(score) || isNaN(rating) || rating <= 0){
+    passesEl.textContent = '—';
+    ratioEl.textContent = 'Enter valid numbers.';
+    result.classList.add('show');
+    result.classList.remove('capped');
+    return;
+  }
+
+  const { ratio, raw, passes } = estimate(score, rating);
+  passesEl.textContent = passes;
+  let text = `Score ÷ Rating = ${ratio.toFixed(3)}` + (raw > 50 ? ' — capped at the 50-pass ceiling' : '');
+  if(estimatedNote) text = estimatedNote + ' — ' + text;
+  ratioEl.textContent = text;
+  result.classList.toggle('capped', raw > 50);
+  result.classList.add('show');
+}
+
+document.getElementById('tabScore').addEventListener('click', () => {
+  document.getElementById('scoreMode').style.display = '';
+  document.getElementById('statsMode').style.display = 'none';
+  document.getElementById('tabScore').classList.add('active-tab');
+  document.getElementById('tabStats').classList.remove('active-tab');
+});
+document.getElementById('tabStats').addEventListener('click', () => {
+  document.getElementById('scoreMode').style.display = 'none';
+  document.getElementById('statsMode').style.display = '';
+  document.getElementById('tabStats').classList.add('active-tab');
+  document.getElementById('tabScore').classList.remove('active-tab');
+});
+
+document.getElementById('calcBtn').addEventListener('click', () => {
+  const score = parseFloat(document.getElementById('score').value);
+  const rating = parseFloat(document.getElementById('rating').value);
+  showResult(score, rating, null);
+});
+
+document.getElementById('calcStatsBtn').addEventListener('click', () => {
+  const tech = parseFloat(document.getElementById('statTech').value) || 0;
+  const gear = parseFloat(document.getElementById('statGear').value) || 0;
+  const hero = parseFloat(document.getElementById('statHero').value) || 0;
+  const pet = parseFloat(document.getElementById('statPet').value) || 0;
+  const master = parseFloat(document.getElementById('statMaster').value) || 0;
+  const building = parseFloat(document.getElementById('statBuilding').value) || 0;
+  const rating = parseFloat(document.getElementById('ratingStats').value);
+
+  const estScore = Math.max(0, estimateScoreFromStats(tech, gear, hero, pet, master, building));
+  document.getElementById('estimatedScoreNote').textContent =
+    `Estimated Transfer Score: ${Math.round(estScore).toLocaleString()} (from a regression on 14 known players — expect it to be off by roughly 5-20%)`;
+  showResult(estScore, rating, `Est. Score ${Math.round(estScore).toLocaleString()}`);
+});
+
+document.getElementById('score').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('calcBtn').click();
+});
+document.getElementById('rating').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('calcBtn').click();
+});
+
+</script>
+</body>
+</html>
